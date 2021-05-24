@@ -1,4 +1,4 @@
-/*	Author: lab
+/*	Author: npate145
  *  	Partner(s) Name: Nish Patel
  *	Lab Section: 022
  *	Assignment: Lab #11
