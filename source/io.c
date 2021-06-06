@@ -9,10 +9,10 @@
           
 /*-------------------------------------------------------------------------*/
 
-#define DATA_BUS PORTC		// port connected to pins 7-14 of LCD display
+#define DATA_BUS PORTA		// port connected to pins 7-14 of LCD display
 #define CONTROL_BUS PORTD	// port connected to pins 4 and 6 of LCD disp.
-#define RS 6			// pin number of uC connected to pin 4 of LCD disp.
-#define E 7			// pin number of uC connected to pin 6 of LCD disp.
+#define RS 0			// pin number of uC connected to pin 4 of LCD disp.
+#define E 2			// pin number of uC connected to pin 6 of LCD disp.
 
 /*-------------------------------------------------------------------------*/
 
@@ -51,6 +51,15 @@ void LCD_WriteData(unsigned char Data) {
 
 void LCD_DisplayString( unsigned char column, const unsigned char* string) {
    LCD_ClearScreen();
+   unsigned char c = column;
+   while(*string) {
+      LCD_Cursor(c++);
+      LCD_WriteData(*string++);
+   }
+}
+
+void LCD_Message( unsigned char column, const unsigned char* string) {
+   //LCD_ClearScreen();
    unsigned char c = column;
    while(*string) {
       LCD_Cursor(c++);
