@@ -11,7 +11,7 @@
 #ifdef _SIMULATE_
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h> // For srand()
+#include <windows.h> // For srand()
 #include <string.h> // For string-to-LCD
 
 #include "io.h"
@@ -25,7 +25,9 @@
 unsigned begin = 0;
 unsigned char needNewProb = 1;
 unsigned char probReady = 0;
+unsigned char userEntered = 0;
 // Game values
+unsigned char userSol[] = {'\0', '\0', '\0'};
 int score = 0;
 unsigned char lives = 3;
 
@@ -78,7 +80,10 @@ int Problem(int state) {
 	    break;
 
 	case P_OpSelect:
-	    srand(time(0));
+	    LARGE_INTEGER cicles;
+ 	    QueryPerformanceCounter(&cicles);
+  	    srand (cicles.QuadPart);
+
 	    op = rand() % 4;
 	    if (op == 0)
 		state = P_Add;
@@ -91,9 +96,7 @@ int Problem(int state) {
 	    break;
 
 	case P_Add:
-	    srand(time(0));
 	    a = rand() % 129;
-	    srand(time(0));
 	    b = rand() % 129;
 
 	    answer = a + b;
@@ -102,9 +105,7 @@ int Problem(int state) {
             break;
 
 	case P_Sub:
-	    srand(time(0));
             a = rand() % 129;
-            srand(time(0));
             b = rand() % 129;
 	
 	    if (a < b) {
@@ -119,9 +120,7 @@ int Problem(int state) {
             break;
 
 	case P_Mult:
-	    srand(time(0));
             a = rand() % 17;
-            srand(time(0));
             b = rand() % 17;
 
 	    answer = times_table[a][b];
@@ -130,9 +129,7 @@ int Problem(int state) {
             break;
 
 	case P_Div:
-	    srand(time(0));
             a = rand() % 17;
-            srand(time(0));
             b = rand() % 17;
 
 	    answer = times_table[a][b];
@@ -169,7 +166,7 @@ int Speaker(int state) {
 }
 */
 
-enum LCD_States { LCD_Start, LCD_WaitProblem, LCD_Problem };
+enum LCD_States { LCD_Start, LCD_WaitProblem, LCD_Problem, LCD_WaitEnter };
 char a_str[8]; b_str[8], score_str[8], lives_str[8];
 int LCD(int state) {
     switch (state) {
@@ -204,6 +201,10 @@ int LCD(int state) {
 	    LCD_Message(17, "Score: "); itoa(score, score_str, 10); LCD_Message(24, score_str); // Display score
 	    
 	    itoa(lives, lives_str, 10); LCD_Message(32, lives_str); // Display lives left
+	    state = LCD_WaitEnter;
+	    break;
+
+	case LCD_WaitEnter:
 	    break;
 
 	default:
@@ -216,7 +217,10 @@ int LCD(int state) {
     return state;
 }
 
-enum Game_States { G_Start, G_WaitPressed, G_NewProblem, G_Problem, G_Correct, G_Incorrect, G_Lost };
+enum Game_States { G_Start, G_WaitPressed, G_NewProblem, G_Problem, G_Correct, G_Incorrect, G_PostProbDisplay, G_Lost };
+unsigned char userCursor = 0;
+int user_answer = 0;
+int count = 0;
 int Game(int state) {
     switch (state) {
 	case G_Start:
@@ -238,22 +242,58 @@ int Game(int state) {
 	    }
 	    break;
 
-	case G_Problem:
+	case G_Problem_Wait:
+	    if (x) { // User input something
+		if (x == '#') { // User submitted answer
+		    probReady = 0; // To prepare for next problem
+		    userEntered = 1;
+		}
+		else if (x == '*' && userCursor != 0) {
+		    userSol[userCursor--] = '\0';
+		}
+		else { // Regular number
+		    if (userCursor != 2)
+			userSol[userCursor++] = x;
+		}
+		state = G_Problem_Pressed;
+	    }
+	    break;
+
+	case G_Problem_Pressed:
+	    if (!x) {
 		// Compare user-input and answer
-		// Equal	->	G_Correct
-		// Not equal	->	G_Incorrect ... lives--
-	    if (x == '#') { // User submits answer
-		// WHEN TRANSITIONING, SET probReady = 0;
+                // Equal        ->      G_Correct
+                // Not equal    ->      G_Incorrect ... lives--
+		if (userEntered) { // Pressed # ~ check answer
+		    user_answer = 0;
+		    unsigned char d = 100;
+		    for (int m = 0; m < 3; m++) {
+			if (userSol[m])
+			    user_answer += (userSol[m] - 48) * d;
+			d /= 10;
+		    }
+		    if (user_answer == answer)
+			state = G_Correct;
+		    else
+			state = G_Incorrect;
+		}
+		else
+		    state = G_Problem_Wait;	
 	    }
 	    break;
 
 	case G_Correct:
 	    // Output:
-	    // 		Correct! :)
+	    // 		Correct!! :)
 	    // 	Solution: ---
 	    // Then score++
+	    LCD_ClearScreen();
+	    LCD_Message(3, "Correct!! :)");
+	    LCD_Message(19, "Solution: ");
+	    LCD_Message(29, userSol);
+	    score++;
 	    needNewProb = 1;
-	    state = G_NewProblem;
+	    state = G_PostProbDisplay;
 	    break;
 
 	case G_Incorrect:
@@ -263,18 +303,33 @@ int Game(int state) {
 	    // Then check if lives == 0...
 	    // 0	->	G_Lost
 	    // Not 0	->	G_Problem
+	    LCD_ClearScreen();
+            LCD_Message(2, "Incorrect.. :(");
+            LCD_Message(19, "Solution: ");
+            LCD_Message(29, userSol);
+	    lives--;
 	    if (lives == 0)
 		state = G_Lost;
 	    else {
 		needNewProb = 1;
-		state = G_NewProblem;
+		state = G_PostProbDisplay;
 	    }
+	    break;
+
+	case G_PostProbDisplay:
+	    count += 50;
+	    if (count == 2000) // Display 'Correct' or 'Incorrect' screen for 2 seconds
+		state = G_NewProblem;
 	    break;
 
 	case G_Lost:
 	    // Output:
-	    // 		Game Over
-	    // 	Score: --------
+	    // 		FINISH! --- pts!
+	    // 	Restart with #
+	    LCD_ClearScreen();
+	    LCD_Message(1, "FINISH! ");
+	    itoa(score, score_str, 10); strcat(score_str, " pts!"); LCD_Message(9, score_str);
+	    LCD_Message(18, "Restart with #");
 	    break;
 
 	default:
