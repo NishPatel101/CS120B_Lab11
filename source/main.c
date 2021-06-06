@@ -11,7 +11,6 @@
 #ifdef _SIMULATE_
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <string.h> // For string-to-LCD
 #include <math.h> // For math functions checking user answer
 
@@ -25,13 +24,42 @@
 // Signalers/Gatekeepers
 unsigned begin = 0;
 unsigned char needNewProb = 1;
-unsigned char probReady = 0;
 unsigned char userEntered = 0;
+unsigned int time1 = 0, time2 = 0;
 // Game values
 unsigned char userSol[] = {'\0', '\0', '\0'};
 int score = 0;
 unsigned char lives = 3;
 unsigned char x; // Keypad Key
+
+enum Rand_States { R_Wait, R_Pressed, R_Finished };
+int Rand(int state) {
+    x = GetKeypadKey();
+
+    switch(state) {
+        case R_Wait:
+            if (x == '#') {
+                state = R_Pressed;
+		srand(time1);
+	    }
+	    else
+		time1++;
+            break;
+
+        case R_Pressed:
+            if (!x) {
+                state = R_Finished;
+		srand(time2);
+	    }
+	    else
+		time2++;
+            break;
+
+        default:
+            state = R_Wait;
+    }
+    return state;
+}
 
 enum Problem_States { P_Start, P_Wait, P_Generate };
 int op;
@@ -39,8 +67,6 @@ int a, b, answer;
 char answer_str[8];
 int times_table[17][17];
 int Problem(int state) {
-    x = GetKeypadKey();
-
     switch (state) {
 	case P_Start:
 	    for (int i = 0; i < 17; i++) { // Populating times_table only once
@@ -48,7 +74,6 @@ int Problem(int state) {
 	            times_table[i][j] = i * j;
 	        }
 	    }
-	    srand(time(0)); // Altering seed
 	    state = P_Wait;
 	    break;
 	
@@ -99,7 +124,6 @@ int Problem(int state) {
             	    break;
 	    }
 	    needNewProb = 0;
-	    probReady = 1;
 	    state = P_Wait;
 	    break;
 
@@ -188,7 +212,6 @@ int Game(int state) {
 	case G_Problem_Wait:
 	    if (x) { // User input something
 		if (x == '#') { // User submitted answer
-		    //probReady = 0; // To prepare for next problem
 		    userEntered = 1;
 		}
 		else if (x == '*') { // Backspace ('*')
@@ -200,16 +223,10 @@ int Game(int state) {
 		else { // Regular number
 		    if (userCursor < 3) {
 			userSol[userCursor++] = x;
-			//LCD_WriteData(x);
 			cursor++;
 			LCD_Cursor(sz_a + cursor);
 		    }
 		}
-		//char temp[5];
-		//for (unsigned z = 0; z < 3; z++)
-		  //  temp[z] = userSol[z];
-		//temp[3] = ' '; temp[4] = ' ';
-		//LCD_Message(sz_a, temp);
 		LCD_Message(sz_a, userSol);
 		LCD_Message(15, "  ");
 		state = G_Problem_Pressed;
@@ -325,8 +342,8 @@ int main(void) {
     /* Insert your solution below */
 
     // Declare an array of tasks
-    static task task1, task2, task3;
-    task* tasks[] = { &task1, &task3 };
+    static task task1, task2, task3, task4;
+    task* tasks[] = { &task4, &task1, &task3 };
     const unsigned short numTasks = sizeof(tasks)/sizeof(task*);
 
     const char start = -1;
@@ -348,6 +365,11 @@ int main(void) {
     task3.elapsedTime = task3.period; // Task current elapsed time
     task3.TickFct = &Game; // Function pointer for the tick
  
+    // Task 4 (Rand)
+    task4.state = start; // Task initial state
+    task4.period = 1; // Task period
+    task4.elapsedTime = task4.period; // Task current elapsed time
+    task4.TickFct = &Rand; // Function pointer for the tick
 
     unsigned long GCD = tasks[0]->period; // Setting timer to GCD of task periods
     for (unsigned i = 1; i < numTasks; i++)
