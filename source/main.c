@@ -56,6 +56,8 @@ unsigned begin = 0;
 unsigned char needNewProb = 1;
 unsigned char userEntered = 0;
 unsigned int time1 = 0, time2 = 0;
+
+unsigned char p_correct = 0, p_incorrect = 0, p_timeOut = 0, p_speedUp = 0, p_lost = 0;
 // Game values
 unsigned char userSol[] = {'\0', '\0', '\0'};
 int score = 0;
@@ -163,22 +165,125 @@ int Problem(int state) {
     return state;
 }
 
-double title[] = {261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25};
+// A#-466.16, B-493.88, C#-554.37, D#-622.25, E-659.25, F#-739.99, G#-830.61, A#-932.33, B-987.77
+double title[] = {493.88, 493.88, 0.0, 0.0, 493.88, 0.0, 493.88, 0.0, 493.88, 493.88, 0.0, 0.0, 622.25, 622.25, 0.0, 0.0, 739.99, 739.99, 739.99, 739.99, 739.99, 739.99, 0.0, 0.0, 622.25, 622.25, 622.25, 622.25, 622.25, 622.25, 0.0, 0.0, 659.25, 659.25, 0.0, 0.0, 659.25, 0.0, 659.25, 0.0, 659.25, 659.25, 0.0, 0.0, 554.37, 554.37, 0.0, 0.0, 493.88, 493.88, 493.88, 493.88, 493.88, 493.88, 0.0, 0.0, 466.16, 466.16, 466.16, 466.16, 466.16, 466.16, 0.0, 0.0, 493.88, 493.88, 0.0, 0.0, 493.88, 0.0, 493.88, 0.0, 493.88, 493.88, 0.0, 0.0, 622.25, 622.25, 0.0, 0.0, 739.99, 739.99, 739.99, 739.99, 739.99, 739.99, 0.0, 0.0, 622.25, 622.25, 622.25, 622.25, 622.25, 622.25, 0.0, 0.0, 659.25, 659.25, 0.0, 0.0, 659.25, 0.0, 659.25, 0.0, 659.25, 659.25, 0.0, 0.0, 830.61, 830.61, 0.0, 0.0, 739.99, 739.99, 739.99, 739.99, 739.99, 739.99, 0.0, 0.0, 739.99, 739.99, 0.0, 0.0, 932.33, 932.33, 0.0, 0.0, 987.77, 987.77, 0.0, 0.0, 987.77, 0.0, 987.77, 0.0, 987.77, 987.77, 0.0, 0.0, 932.33, 932.33, 0.0, 0.0, 739.99, 739.99, 739.99, 739.99, 739.99, 739.99, 0.0, 0.0, 622.25, 622.25, 0.0, 0.0, 739.99, 739.99, 0.0, 0.0, 830.61, 830.61, 0.0, 0.0, 830.61, 0.0, 830.61, 0.0, 830.61, 830.61, 0.0, 0.0, 739.99, 739.99, 0.0, 0.0, 622.25, 622.25, 622.25, 622.25, 622.25, 622.25, 0.0, 0.0, 554.37, 554.37, 0.0, 0.0, 622.25, 622.25, 0.0, 0.0, 659.25, 659.25, 0.0, 0.0, 659.25, 0.0, 659.25, 0.0, 659.25, 659.25, 0.0, 0.0, 622.25, 622.25, 0.0, 0.0, 554.37, 554.37, 554.37, 554.37, 554.37, 554.37, 0.0, 0.0, 659.25, 659.25, 659.25, 659.25, 659.25, 659.25, 0.0, 0.0, 622.25, 622.25, 622.25, 622.25, 622.25, 622.25, 622.25, 622.25, 622.25, 622.25, 0.0, 0.0, 554.37, 554.37, 0.0, 0.0, 493.88, 493.88, 493.88, 493.88, 493.88, 493.88, 0.0, 0.0, 466.16, 466.16, 466.16, 466.16, 466.16, 466.16, 0.0, 0.0};
+//double problem[];
+double correct[] = {698.46, 0.0, 659.25, 698.46, 698.46, 698.46, 698.46, 698.46};
+double incorrect[] = {293.66, 0.0, 277.18, 0.0, 261.63, 0.0, 246.94, 246.94, 246.94, 246.94, 246.94, 246.94};
+double timeOut[] = {554.37, 130.81, 130.81, 130.81, 130.81, 130.81, 130.81, 130.81};
+double speedUp[] = {250, 0, 250, 0, 250, 0}; 
+double lost[256];
 unsigned char note = 0;
-enum Speaker_States { S_Title, S_Done };
+unsigned long bpm = 65;
+enum Speaker_States { S_Title, S_Problem, S_Correct, S_Incorrect, S_TimeOut, S_SpeedUp, S_Lost };
 int Speaker(int state) {
     switch (state) { // Transitions
 	case S_Title:
-	    if (note == 8)
-		state = S_Done;
+	    if(begin) {
+		state = S_Problem;
+		set_PWM(0.0);
+	    }
 	    else {
-		set_PWM(title[note]);
-	        note++;
+	        if (note == (sizeof(title)/sizeof(*title)))
+		    note = 0; // Loop
+		    set_PWM(title[note]);
+	            note++;
+    	    }
+	    break;
+
+	case S_Problem:
+	    note = 0;
+	    if (p_correct) {
+		bpm = 107;
+		state = S_Correct;
+		p_correct = 0;
+	    }
+	    else if (p_incorrect) {
+		bpm = 167;
+		state = S_Incorrect;
+		p_incorrect = 0;
+	    }
+	    else if (p_timeOut) {
+		bpm = 150;
+		state = S_TimeOut;
+		p_timeOut = 0;
+	    }
+	    else if (p_speedUp) {
+		bpm = 500;
+		state = S_SpeedUp;
+		p_speedUp = 0;
+	    }
+	    else if (p_lost) {
+		bpm = 65;
+		state = S_Lost;
+		p_lost = 0;
 	    }
 	    break;
 
-	case S_Done:
-	    set_PWM(0.0);
+	case S_Correct:
+	    bpm = 107;
+	    if (note == (sizeof(correct)/sizeof(*correct))) {
+                note = 0;
+                state = S_Problem;
+                set_PWM(0.0);
+            }
+            else {
+                set_PWM(correct[note]);
+                note++;
+            }
+	    break;
+
+	case S_Incorrect:
+	    bpm = 167;
+	    if (note == (sizeof(incorrect)/sizeof(*incorrect))) {
+                note = 0;
+                state = S_Problem;
+                set_PWM(0.0);
+            }
+            else {
+                set_PWM(incorrect[note]);
+                note++;
+            }
+	    break;
+
+	case S_TimeOut:
+	    bpm = 150;
+	    if (note == (sizeof(timeOut)/sizeof(*timeOut))) {
+                note = 0;
+                state = S_Problem;
+                set_PWM(0.0);
+            }
+            else {
+                set_PWM(timeOut[note]);
+                note++;
+            }
+	    break;
+
+	case S_SpeedUp:
+	    bpm = 500;
+	    if (note == (sizeof(speedUp)/sizeof(*speedUp))) {
+		note = 0;
+		state = S_Problem;
+		set_PWM(0.0);
+	    }
+	    else {
+		set_PWM(speedUp[note]);
+		note++;
+	    }
+	    break;
+
+	case S_Lost:
+	    bpm = 65;
+	    if(begin || needNewProb) {
+                state = S_Problem;
+		set_PWM(0.0);
+	    }
+            else {
+                if (note == (sizeof(lost)/sizeof(*lost)))
+                    note = 0; // Loop
+                    set_PWM(lost[note]);
+                    note++;
+            }
 	    break;
 
 	default:
@@ -186,8 +291,12 @@ int Speaker(int state) {
     }
     return state;
 }
-/*
-enum Timer_States { T_Start, T_Wait};
+
+// Sadly, this SM would not work with the others. Might be conflicts with using PORTB, so oh well :(
+unsigned char lights[] = {0x41, 0x43, 0x47, 0x4F, 0x5F, 0xEF, 0xFF}; // Set PORTB to values for Timer light
+unsigned char timeLight = 7;
+unsigned char timeLimitSecs = 7;
+enum Timer_States { T_Start, T_Wait, T_Light };
 int Timer(int state) {
     switch(state) {
 	case T_Start:
@@ -201,7 +310,13 @@ int Timer(int state) {
 	    break;
 
 	case T_Light:
-	    b;
+	    timeLight--;
+	    if (timeLight >= 0)
+	        PORTB = lights[timeLight];
+	    else {
+		state = T_Wait;
+		timeLight = timeLimitSecs;
+	    }	
 	    break;
 
 	default:
@@ -209,7 +324,7 @@ int Timer(int state) {
     }
     return state;
 }
-*/
+
 enum Game_States { G_Title, G_Start, G_WaitBegin, G_NewProblem, G_Problem_Wait, G_Problem_Pressed, G_Correct, G_SpeedUp, G_Incorrect, G_TimedOut, G_PostProbDisplay, G_Lost };
 char a_str[12]; b_str[8], score_str[8], lives_str[8];
 unsigned short sz_a;
@@ -268,8 +383,10 @@ int Game(int state) {
 	    break;
 
 	case G_Problem_Wait:
-	    if (timePassed >= timeLimit)
+	    if (timePassed >= timeLimit) {
 		state = G_TimedOut;
+		p_timeOut = 1;
+	    }
 	    else {
 	    	if (x) { // User input something
 		    if (x == '#') { // User submitted answer
@@ -293,8 +410,10 @@ int Game(int state) {
 	    break;
 
 	case G_Problem_Pressed:
-	    if (timePassed >= timeLimit)
+	    if (timePassed >= timeLimit) {
 		state = G_TimedOut;
+		p_timeOut = 1;
+	    }
 	    else {
 	    	if (!x) {
 		    // Compare user-input and answer
@@ -318,10 +437,14 @@ int Game(int state) {
 			        d /= 10;
 		    	    }
 		        }
-		        if (user_answer == answer) // CHECK ANSWER
+		        if (user_answer == answer) {// CHECK ANSWER
 			    state = G_Correct;
-		        else
+			    p_correct = 1;
+			}
+		        else {
 			    state = G_Incorrect;
+			    p_incorrect = 1;
+			}
 			
 		        itoa(answer, answer_str, 10); // Solution string for displaying on 'Correct' and 'Incorrect'
 		    }
@@ -392,15 +515,23 @@ int Game(int state) {
             userCursor = 0; // Reset user cursor for next problem
 	    count += 50;
 	    if (count == 1500) { // Display 'Correct','Incorrect' or 'Timed Out' screen for 1.4 seconds
-		if (lives == 0)
+		if (lives == 0) {
 		    state = G_Lost;
+		    p_lost = 1;
+		}
 		else if (score == 7 && timeLimit != 6000) { // Second condition if speed up already happened and score stayed the same
 		    state = G_SpeedUp;
+		    p_speedUp = 1;
 		    timeLimit = 6000;
+		    timeLight = 6;
+		    timeLimitSecs = 6;
 		}
 		else if (score == 12 && timeLimit != 5000) {
 		    state = G_SpeedUp;
+		    p_speedUp = 1;
 		    timeLimit = 5000;
+		    timeLight = 5;
+		    timeLimitSecs = 5;
 		}
 		else
 		    state = G_NewProblem;
@@ -436,9 +567,12 @@ int main(void) {
     DDRD = 0xFF; PORTD = 0x00;
     /* Insert your solution below */
 
+    for (unsigned p = 0; p < 256; p++)
+	lost[p] = pow(title[p], 1.0595);
+
     // Declare an array of tasks
-    static task task1, task2, task3, task4;
-    task* tasks[] = { &task4, &task1, &task3 };
+    static task task1, task2, task3, task4, task5;
+    task* tasks[] = { &task4, &task1, &task3, &task2 };
     const unsigned short numTasks = sizeof(tasks)/sizeof(task*);
 
     const char start = -1;
@@ -450,7 +584,7 @@ int main(void) {
     
     // Task 2 (Speaker)
     task2.state = start; // Task initial state
-    task2.period = 600; // Task period
+    task2.period = 65; // Task period
     task2.elapsedTime = task2.period; // Task current elapsed time
     task2.TickFct = &Speaker; // Function pointer for the tick
     
@@ -466,6 +600,12 @@ int main(void) {
     task4.elapsedTime = task4.period; // Task current elapsed time
     task4.TickFct = &Rand; // Function pointer for the tick
 
+    // Task 5 (Timer) NOT USED :(
+    task5.state = start; // Task initial state
+    task5.period = 1000; // Task period
+    task5.elapsedTime = task5.period; // Task current elapsed time
+    task5.TickFct = &Timer; // Function pointer for the tick
+
     unsigned long GCD = tasks[0]->period; // Setting timer to GCD of task periods
     for (unsigned i = 1; i < numTasks; i++)
 	GCD = findGCD(GCD, tasks[i]->period);
@@ -476,6 +616,8 @@ int main(void) {
     LCD_init();
     unsigned short i; // Scheduler for-loop iterator
     while (1) {
+	task2.period = bpm; // Dynamically changing bpm
+
 	for (i = 0; i < numTasks; i++) { // Scheduler code
 	    if (tasks[i]->elapsedTime == tasks[i]->period) { // Task is ready to tick
 				tasks[i]->state = tasks[i]->TickFct(tasks[i]->state); // Set next state
