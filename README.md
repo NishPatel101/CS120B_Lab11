@@ -36,4 +36,6 @@ Informal description of the music:
 Correct - triumphant jingle
 Incorrect - fail sound effect (trombone)
 Time's up - alarm that catches you off guard
-Speed up - blinking alarm (goes with display)
+Speed up - blinking alarm (goes with display)  
+
+The demo is available on youtube: https://www.youtube.com/watch?v=1h39LPbvqTE
