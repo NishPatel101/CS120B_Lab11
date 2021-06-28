@@ -5,7 +5,7 @@
 My game is called 𝘔𝘢𝘵𝘩 𝘔𝘢𝘴𝘵𝘦𝘳𝘴. It is an endless score game, where randomly generated addition, subtraction, multiplication and division problems need to be solved within a time limit (using the keypad).
 
 There are only natural numbers (nonnegative integers). Due to LCD limitations, I limited the addition and subtraction subtraction to three digit numbers, and the multiplication and division are limited to 16 × 16 at most.  
--------------------------------------------------------------------------//-------------------------------------------------------------------------  
+-----------------------------------------------------------------//----------------------------------------------------------------  
 𝗔𝗱𝗱𝗶𝘁𝗶𝗼𝗻𝗮𝗹 𝗙𝗲𝗮𝘁𝘂𝗿𝗲𝘀:
 
 𝘛𝘺𝘱𝘪𝘯𝘨  
