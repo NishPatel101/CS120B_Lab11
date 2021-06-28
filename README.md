@@ -6,7 +6,9 @@ My game is called 𝘔𝘢𝘵𝘩 𝘔𝘢𝘴𝘵𝘦𝘳𝘴. It is an endles
 
 There are only natural numbers (nonnegative integers). Due to LCD limitations, I limited the addition and subtraction subtraction to three digit numbers, and the multiplication and division are limited to 16 × 16 at most.  
   
+<p align="center">
 <img src="https://github.com/NishPatel101/CS120B_Lab11/blob/master/Images/Breadboard.png?raw=true" width="821" height="395">  
+</p>
 -----------------------------------------------------------------//----------------------------------------------------------------  
 
 𝗔𝗱𝗱𝗶𝘁𝗶𝗼𝗻𝗮𝗹 𝗙𝗲𝗮𝘁𝘂𝗿𝗲𝘀:
@@ -22,6 +24,10 @@ There is a time limit for answering each question. As the player's score increas
 
 𝘔𝘦𝘯𝘶𝘴 𝘢𝘯𝘥 𝘙𝘦𝘴𝘶𝘭𝘵 𝘚𝘤𝘳𝘦𝘦𝘯𝘴  
 There are result screens and two menus to make it feel more like a game. There is a start menu when powering the circuit and a retry menu after losing all lives. In either menu, the player can choose to play by pressing the '#' key. There are additional results and update screens: 'Correct', 'Incorrect', 'Time's up', and 'Speed up'. These (excluding 'Speed up') also display the correct solution so the player may learn!
+
+<p align="center">
+<img src="https://github.com/NishPatel101/CS120B_Lab11/blob/master/Images/Title_Screen.png?raw=true" width="536" height="217">  
+</p>
 
 𝘔𝘶𝘴𝘪𝘤 🎵  
 For liveliness, I added music!!
